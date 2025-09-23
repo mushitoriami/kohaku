@@ -1,6 +1,6 @@
 [package]
 name = "kohaku"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "A simple tokenizer that handles alphanumeric characters, underscore (`_`), whitespace, and some specified keywords."
 license = "MIT"
