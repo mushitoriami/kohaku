@@ -2,7 +2,7 @@
 A simple tokenizer that handles alphanumeric characters, underscore (`_`), whitespace, and some specified keywords.
 
 ```rust
-let mut tokenizer = Tokenizer::new(["->", "<-", "{", "}"]);
+let mut tokenizer = kohaku::Tokenizer::new(["->", "<-", "{", "}"]);
 
 assert_eq!(
     tokenizer
