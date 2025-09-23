@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "A simple tokenizer that handles alphanumeric characters, underscore (`_`), whitespace, and some specified keywords."
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/mushitoriami/kohaku"
 
 [dependencies]
