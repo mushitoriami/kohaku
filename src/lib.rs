@@ -9,6 +9,15 @@ pub struct TokenIterator<'a> {
 }
 
 impl<'a> TokenIterator<'a> {
+    fn skip_literal(iter: &mut Peekable<CharIndices>) -> bool {
+        if iter.peek().is_some_and(|x| x.1 == '"') {
+            iter.next();
+            while iter.next().is_some_and(|x| x.1 != '"') {}
+            return true;
+        }
+        false
+    }
+
     fn skip_with_condition(iter: &mut Peekable<CharIndices>, condition: fn(char) -> bool) -> bool {
         let index = iter.peek().map(|x| x.0);
         while iter.peek().is_some_and(|x| condition(x.1)) {
@@ -36,6 +45,7 @@ impl<'a> TokenIterator<'a> {
     fn skip_token(iter: &mut Peekable<CharIndices>, state: &State) -> bool {
         Self::skip_alphanumeric(iter)
             || Self::skip_whitespace(iter)
+            || Self::skip_literal(iter)
             || Self::skip_with_state(iter, state)
     }
 
@@ -378,6 +388,22 @@ mod tests {
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             vec!["f", "(", "a", ",", "b", ",", "X", ")"]
+        );
+    }
+
+    #[test]
+    fn test_tokenizer_11() {
+        let mut tokenizer = Tokenizer::new([
+            "->", "<-", "(", ")", "{", "=", ",", "}", "[", "|", "]", "*", ".",
+        ]);
+        assert_eq!(
+            tokenizer
+                .tokenize(r#"(*"3" -> int -> *"i".write)"#)
+                .map(Result::unwrap)
+                .collect::<Vec<&str>>(),
+            vec![
+                "(", "*", r#""3""#, "->", "int", "->", "*", r#""i""#, ".", "write", ")"
+            ]
         );
     }
 }
