@@ -6,9 +6,9 @@ let mut tokenizer = kohaku::Tokenizer::new(["->", "<-", "{", "}"]);
 
 assert_eq!(
     tokenizer
-        .tokenize("{abc -> 123}")
+        .tokenize(r#"{abc -> "123 <- 456"}"#)
         .collect::<Vec<Result<&str, usize>>>(),
-    [Ok("{"), Ok("abc"), Ok("->"), Ok("123"), Ok("}")]
+    [Ok("{"), Ok("abc"), Ok("->"), Ok(r#""123 <- 456""#), Ok("}")]
 );
 
 assert_eq!(
