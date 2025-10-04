@@ -1,5 +1,5 @@
 # kohaku
-A simple tokenizer that handles alphanumeric characters, underscore (`_`), whitespace, and some specified keywords.
+A simple tokenizer
 
 ```rust
 let mut tokenizer = kohaku::Tokenizer::new(["->", "<-", "{", "}"]);

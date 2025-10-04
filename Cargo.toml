@@ -2,7 +2,7 @@
 name = "kohaku"
 version = "0.1.3"
 edition = "2024"
-description = "A simple tokenizer that handles alphanumeric characters, underscore (`_`), whitespace, and some specified keywords."
+description = "A simple tokenizer"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/mushitoriami/kohaku"
