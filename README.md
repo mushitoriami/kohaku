@@ -2,18 +2,18 @@
 A simple tokenizer
 
 ```rust
-let mut tokenizer = kohaku::Tokenizer::new(["->", "<-", "{", "}"]);
+use kohaku::Tokenizer;
 
 assert_eq!(
-    tokenizer
-        .tokenize(r#"{abc -> "123 <- 456"}"#)
+    r#"{abc -> "123 <- 456"}"#
+        .tokenize(["->", "<-", "{", "}"])
         .collect::<Vec<Result<&str, usize>>>(),
     [Ok("{"), Ok("abc"), Ok("->"), Ok(r#""123 <- 456""#), Ok("}")]
 );
 
 assert_eq!(
-    tokenizer
-        .tokenize("{abc -> 1-3}")
+    "{abc -> 1-3}"
+        .tokenize(["->", "<-", "{", "}"])
         .collect::<Vec<Result<&str, usize>>>(),
     [Ok("{"), Ok("abc"), Ok("->"), Ok("1"), Err(10)]
 );

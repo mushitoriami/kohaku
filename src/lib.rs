@@ -4,7 +4,7 @@ use std::str::CharIndices;
 
 pub struct TokenIterator<'a> {
     input: &'a str,
-    state: &'a State,
+    state: State,
     iter: Peekable<CharIndices<'a>>,
 }
 
@@ -68,7 +68,7 @@ impl<'a> Iterator for TokenIterator<'a> {
     type Item = Result<&'a str, usize>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let token = Self::take_token(&mut self.iter, self.state, self.input)?;
+        let token = Self::take_token(&mut self.iter, &self.state, self.input)?;
         if token.is_err() {
             self.iter = "".char_indices().peekable();
         } else if token.is_ok_and(|t| t.chars().next().is_some_and(char::is_whitespace)) {
@@ -100,26 +100,26 @@ impl State {
     }
 }
 
-pub struct Tokenizer {
-    initial_state: State,
+pub trait Tokenizer {
+    fn tokenize<'a>(
+        &'a self,
+        keywords: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> TokenIterator<'a>;
 }
 
-impl Tokenizer {
-    pub fn new(keywords: impl IntoIterator<Item = impl AsRef<str>>) -> Self {
+impl Tokenizer for str {
+    fn tokenize<'a>(
+        &'a self,
+        keywords: impl IntoIterator<Item = impl AsRef<str>>,
+    ) -> TokenIterator<'a> {
         let mut state = State::new();
         for keyword in keywords {
             state.add_path(keyword.as_ref().chars());
         }
-        Tokenizer {
-            initial_state: state,
-        }
-    }
-
-    pub fn tokenize<'a>(&'a mut self, input: &'a str) -> TokenIterator<'a> {
         TokenIterator {
-            input: input,
-            state: &self.initial_state,
-            iter: input.char_indices().peekable(),
+            input: self,
+            state: state,
+            iter: self.char_indices().peekable(),
         }
     }
 }
@@ -222,15 +222,14 @@ mod tests {
 
     #[test]
     fn test_tokenizer_1() {
-        let mut tokenizer = Tokenizer::new(vec![
-            String::from("->"),
-            String::from("<-"),
-            String::from("{"),
-            String::from("}"),
-        ]);
         assert_eq!(
-            tokenizer
-                .tokenize("{aaa ->bbb }")
+            "{aaa ->bbb }"
+                .tokenize(vec![
+                    String::from("->"),
+                    String::from("<-"),
+                    String::from("{"),
+                    String::from("}"),
+                ])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![Ok("{"), Ok("aaa"), Ok("->"), Ok("bbb"), Ok("}")]
         );
@@ -238,15 +237,14 @@ mod tests {
 
     #[test]
     fn test_tokenizer_2() {
-        let mut tokenizer = Tokenizer::new([
-            String::from("->"),
-            String::from("<-"),
-            String::from("{"),
-            String::from("}"),
-        ]);
         assert_eq!(
-            tokenizer
-                .tokenize("{inst_1 -> inst_2 -> {inst_4 <- inst_3} -> inst_5}")
+            "{inst_1 -> inst_2 -> {inst_4 <- inst_3} -> inst_5}"
+                .tokenize([
+                    String::from("->"),
+                    String::from("<-"),
+                    String::from("{"),
+                    String::from("}"),
+                ])
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             vec![
@@ -258,10 +256,8 @@ mod tests {
 
     #[test]
     fn test_tokenizer_3() {
-        let mut tokenizer = Tokenizer::new(vec!["->", "<-", "{", "}"]);
         assert_eq!(
-            tokenizer
-                .tokenize("")
+            "".tokenize(vec!["->", "<-", "{", "}"])
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             Vec::<&str>::new()
@@ -270,10 +266,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_4() {
-        let mut tokenizer = Tokenizer::new(["->", "<-", "{", "}"]);
         assert_eq!(
-            tokenizer
-                .tokenize("{inst1 -> inst2 -> {inst4 <- inst3} -")
+            "{inst1 -> inst2 -> {inst4 <- inst3} -"
+                .tokenize(["->", "<-", "{", "}"])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![
                 Ok("{"),
@@ -293,10 +288,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_5() {
-        let mut tokenizer = Tokenizer::new(["->", "<-", "{", "}"]);
         assert_eq!(
-            tokenizer
-                .tokenize("{inst1 -> inst2 -> {inst4 < inst3}")
+            "{inst1 -> inst2 -> {inst4 < inst3}"
+                .tokenize(["->", "<-", "{", "}"])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![
                 Ok("{"),
@@ -313,10 +307,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_6() {
-        let mut tokenizer = Tokenizer::new([":-", "[", "]", "(", ")", ",", "."]);
         assert_eq!(
-            tokenizer
-                .tokenize("ab(cd(ef),gh)")
+            "ab(cd(ef),gh)"
+                .tokenize([":-", "[", "]", "(", ")", ",", "."])
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             vec!["ab", "(", "cd", "(", "ef", ")", ",", "gh", ")"]
@@ -325,10 +318,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_7() {
-        let mut tokenizer = Tokenizer::new([":-", "[", "]", "(", ")", ",", "."]);
         assert_eq!(
-            tokenizer
-                .tokenize("a_b*a_c(")
+            "a_b*a_c("
+                .tokenize([":-", "[", "]", "(", ")", ",", "."])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![Ok("a_b"), Err("a_b".len())]
         );
@@ -336,10 +328,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_8() {
-        let mut tokenizer = Tokenizer::new([":-", "[", "]", "(", ")", ",", "."]);
         assert_eq!(
-            tokenizer
-                .tokenize("ab(c_d(e_f),g_h)))(")
+            "ab(c_d(e_f),g_h)))("
+                .tokenize([":-", "[", "]", "(", ")", ",", "."])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![
                 Ok("ab"),
@@ -360,10 +351,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_9() {
-        let mut tokenizer = Tokenizer::new([":-", "[", "]", "(", ")", ",", "."]);
         assert_eq!(
-            tokenizer
-                .tokenize("[2]a:-b,c.\n")
+            "[2]a:-b,c.\n"
+                .tokenize([":-", "[", "]", "(", ")", ",", "."])
                 .collect::<Vec<Result<&str, usize>>>(),
             vec![
                 Ok("["),
@@ -381,10 +371,9 @@ mod tests {
 
     #[test]
     fn test_tokenizer_10() {
-        let mut tokenizer = Tokenizer::new([":-", "[", "]", "(", ")", ",", "."]);
         assert_eq!(
-            tokenizer
-                .tokenize("f(a ,b ,X)")
+            "f(a ,b ,X)"
+                .tokenize([":-", "[", "]", "(", ")", ",", "."])
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             vec!["f", "(", "a", ",", "b", ",", "X", ")"]
@@ -393,12 +382,11 @@ mod tests {
 
     #[test]
     fn test_tokenizer_11() {
-        let mut tokenizer = Tokenizer::new([
-            "->", "<-", "(", ")", "{", "=", ",", "}", "[", "|", "]", "*", ".",
-        ]);
         assert_eq!(
-            tokenizer
-                .tokenize(r#"(*"3" -> int -> *"i".write)"#)
+            r#"(*"3" -> int -> *"i".write)"#
+                .tokenize([
+                    "->", "<-", "(", ")", "{", "=", ",", "}", "[", "|", "]", "*", ".",
+                ])
                 .map(Result::unwrap)
                 .collect::<Vec<&str>>(),
             vec![
