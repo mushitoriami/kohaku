@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
+#[derive(Debug, Clone)]
 pub struct TokenIterator<'a> {
     input: &'a str,
     state: State,
@@ -78,7 +79,7 @@ impl<'a> Iterator for TokenIterator<'a> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct State {
     is_end_state: bool,
     trans: HashMap<char, State>,
@@ -118,7 +119,7 @@ impl Tokenizer for str {
         }
         TokenIterator {
             input: self,
-            state: state,
+            state,
             iter: self.char_indices().peekable(),
         }
     }
