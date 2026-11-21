@@ -6,6 +6,7 @@ pub struct TokenIterator<'a> {
     input: &'a str,
     state: State,
     iter: Peekable<CharIndices<'a>>,
+    done: bool,
 }
 
 impl<'a> TokenIterator<'a> {
@@ -57,9 +58,10 @@ impl<'a> TokenIterator<'a> {
         let index_start = iter.peek().map(|x| x.0)?;
         let is_success = Self::skip_token(iter, state);
         let index_end = iter.peek().map(|x| x.0).unwrap_or(input.len());
-        match is_success {
-            true => Some(Ok(&input[index_start..index_end])),
-            false => Some(Err(index_end)),
+        if is_success {
+            Some(Ok(&input[index_start..index_end]))
+        } else {
+            Some(Err(index_end))
         }
     }
 }
@@ -68,13 +70,14 @@ impl<'a> Iterator for TokenIterator<'a> {
     type Item = Result<&'a str, usize>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let token = Self::take_token(&mut self.iter, &self.state, self.input)?;
-        if token.is_err() {
-            self.iter = "".char_indices().peekable();
-        } else if token.is_ok_and(|t| t.chars().next().is_some_and(char::is_whitespace)) {
-            return self.next();
+        while !self.done {
+            let token = Self::take_token(&mut self.iter, &self.state, self.input)?;
+            self.done = token.is_err();
+            if !token.is_ok_and(|t| t.starts_with(char::is_whitespace)) {
+                return Some(token);
+            }
         }
-        Some(token)
+        None
     }
 }
 
@@ -120,6 +123,7 @@ impl Tokenizer for str {
             input: self,
             state: state,
             iter: self.char_indices().peekable(),
+            done: false,
         }
     }
 }
